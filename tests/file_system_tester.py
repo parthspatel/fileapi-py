@@ -122,7 +122,7 @@ class FileSystemTester(object):
 	def stage_locally(self, file: FileAPI):
 		self.__logger.info(f"> Staging {file} locally")
 		with self.local_stage_lock:
-			file.copy_to(self.config.local_stage)
+			file.stage_temp_file(self.config.local_stage)
 		if self.config.local_stage.exists():
 			self.__logger.info(f"> Staged {file} locally")
 		else:
