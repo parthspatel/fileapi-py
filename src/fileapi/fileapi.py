@@ -16,9 +16,9 @@ class FileAPI:
 	def __init__(self,
 			path: str,
 			*,
-			fs: Optional[fsspec.AbstractFileSystem],
-			resolved_path: Optional[LiteralString | str],
-			storage_options: lib_storage_options.StorageOptions,
+			fs: Optional[fsspec.AbstractFileSystem] = None,
+			resolved_path: Optional[LiteralString | str] = None,
+			storage_options: Optional[lib_storage_options.StorageOptions] = None,
 	):
 
 		self.path: str
@@ -26,25 +26,36 @@ class FileAPI:
 		self.resolved_path: str
 		self.storage_options: lib_storage_options.StorageOptions
 
-		self.path = path
-		self.storage_options = storage_options
+		if storage_options is None:
+			storage_options = lib_storage_options.default()
 
-		if fs is None:
-			if resolved_path is None:
-				self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=storage_options)
-			else:
-				self.resolved_path = resolved_path
-				self.fs, _ = _get_fs_and_path(path, storage_options=storage_options)
-		elif resolved_path is None:
-			self.fs = fs
-			self.resolved_path = _get_path(fs, path)
+		if fs is None and resolved_path is None:
+			temp_obj: FileAPI = self.apply(path=path, storage_options=storage_options)
+			self.path = temp_obj.path
+			self.fs = temp_obj.fs
+			self.resolved_path = temp_obj.resolved_path
+			self.storage_options = temp_obj.storage_options
+
 		else:
-			self.fs = fs
-			self.resolved_path = resolved_path
-			if "auto_mkdir" in self.storage_options:
-				self.fs.auto_mkdir = storage_options["auto_mkdir"]
-			if "cache_type" in self.storage_options:
-				self.fs.cache_type = storage_options["cache_type"]
+			self.path = path
+			self.storage_options = storage_options
+
+			if fs is None:
+				if resolved_path is None:
+					self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=storage_options)
+				else:
+					self.resolved_path = resolved_path
+					self.fs, _ = _get_fs_and_path(path, storage_options=storage_options)
+			elif resolved_path is None:
+				self.fs = fs
+				self.resolved_path = _get_path(fs, path)
+			else:
+				self.fs = fs
+				self.resolved_path = resolved_path
+				if "auto_mkdir" in self.storage_options:
+					self.fs.auto_mkdir = storage_options["auto_mkdir"]
+				if "cache_type" in self.storage_options:
+					self.fs.cache_type = storage_options["cache_type"]
 
 	@classmethod
 	def apply(cls, path: LiteralString | 'FileAPI' | str, storage_options: Optional[Dict] = None) -> 'FileAPI':
@@ -98,7 +109,7 @@ class FileAPI:
 	def find_children(self, prefix: str, recursive: bool = True) -> Iterator['FileAPI']:
 		paths = self.fs.glob(os.path.join(self.resolved_path, prefix))
 		for path in paths:
-			yield FileAPI.apply(path)
+			yield FileAPI(path)
 
 	def size(self) -> int:
 		return self.fs.size(self.resolved_path)
@@ -198,6 +209,7 @@ class FileAPI:
 		local_file_api = FileAPI(local_path, fs=local_fs, resolved_path=local_path, storage_options=self.storage_options)
 		self.copy_to(local_file_api)
 		return local_file_api
+
 
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(path: str, *, storage_options: Optional[lib_storage_options.StorageOptions] = None) -> Tuple[fsspec.AbstractFileSystem, LiteralString]:

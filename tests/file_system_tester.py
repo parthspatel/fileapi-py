@@ -17,7 +17,10 @@ class FileSystemTester(object):
 		"""
 
 		def __init__(self, root: str):
-			self.dir_00: FileAPI = FileAPI.apply(root)
+			self.local_tmp = FileAPI("file://./tmp")
+			self.local_stage = self.local_tmp / "stage.json"
+
+			self.dir_00: FileAPI = FileAPI(root)
 			self.file_01: FileAPI = self.dir_00 / "sample-file-01.json"
 
 			self.dir_01: FileAPI = self.dir_00 / "sample-dir-01"
@@ -28,8 +31,6 @@ class FileSystemTester(object):
 			self.file_04: FileAPI = self.dir_02 / "sample-file-04.json"
 			self.file_05: FileAPI = self.dir_02 / "sample-file-05.json"
 
-			self.local_tmp = FileAPI.apply("file://./tmp")
-			self.local_stage = self.local_tmp / "stage.json"
 
 	def __init__(self, config: Config):
 		self.config = config
