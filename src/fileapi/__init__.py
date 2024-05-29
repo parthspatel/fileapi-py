@@ -1,5 +1,3 @@
-__version__ = "0.1.0"
-
+from .__version__ import __version__
 from .fileapi import *
 from .storage_options import *
-
