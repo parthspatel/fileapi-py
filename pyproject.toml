@@ -17,6 +17,7 @@ pytest = "^8.2.1"
 fsspec = { extras = ["full"], version = "^2024.5.0" }
 gcsfs = "^2024.5.0"
 pytest-xdist = "^3.6.1"
+python-dotenv = "^1.0.1"
 
 [[tool.poetry.source]]
 name = "mendel"

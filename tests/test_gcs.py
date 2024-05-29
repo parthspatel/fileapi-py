@@ -1,14 +1,19 @@
 import logging
+import os
 
 from tests.file_system_tester import FileSystemTester
+import dotenv
+import pytest
 
 LOGGER = logging.getLogger(__name__)
+dotenv.load_dotenv()
 
 
 def test_gcs():
 	logging.basicConfig(level=logging.INFO)
 
-	tester = FileSystemTester.apply("gs://ai-team-data/fileapi-py/testing")
+	root = os.getenv("GCS_ROOT")
+	tester = FileSystemTester.apply("root")
 	tester.test()
 	if len(tester.errors) != 0:
 		for error in tester.errors:
