@@ -191,7 +191,7 @@ class FileAPI:
 	def path_string(self) -> str:
 		return self.path
 
-	def stage_locally(self) -> 'FileAPI':
+	def stage_temp_file(self) -> 'FileAPI':
 		with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
 			local_path = tmp_file.name
 		local_fs = fsspec.filesystem('file')
