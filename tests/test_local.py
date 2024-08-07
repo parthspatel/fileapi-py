@@ -8,7 +8,7 @@ LOGGER = logging.getLogger(__name__)
 def test_local():
 	logging.basicConfig(level=logging.INFO)
 
-	tester = FileSystemTester.apply("./resources")
+	tester = FileSystemTester.apply("file://./tmp")
 	tester.test()
 	if len(tester.errors) != 0:
 		for error in tester.errors:

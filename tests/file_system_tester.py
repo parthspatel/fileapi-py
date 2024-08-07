@@ -31,7 +31,6 @@ class FileSystemTester(object):
 			self.file_04: FileAPI = self.dir_02 / "sample-file-04.json"
 			self.file_05: FileAPI = self.dir_02 / "sample-file-05.json"
 
-
 	def __init__(self, config: Config):
 		self.config = config
 		self.errors = list()
@@ -121,17 +120,23 @@ class FileSystemTester(object):
 
 	def stage_locally(self, file: FileAPI):
 		self.__logger.info(f"> Staging {file} locally")
-		with self.local_stage_lock:
-			file.stage_temp_file(self.config.local_stage)
-		if self.config.local_stage.exists():
-			self.__logger.info(f"> Staged {file} locally")
-		else:
-			self.errors.append(f"> Failed to stage {file} locally")
-			self.__logger.error(f"> Failed to stage {file} locally")
 
-		self.config.local_stage.delete()
-		if not self.config.local_stage.exists():
-			self.__logger.info(f"> Deleted {self.config.local_stage}")
-		else:
-			self.errors.append(f"> Failed to delete {self.config.local_stage}")
-			self.__logger.error(f"> Failed to delete {self.config.local_stage}")
+		try:
+			with self.local_stage_lock:
+				file.stage_temp_file(self.config.local_stage)
+			if self.config.local_stage.exists():
+				self.__logger.info(f"> Staged {file} locally")
+			else:
+				self.errors.append(f"> Failed to stage {file} locally")
+				self.__logger.error(f"> Failed to stage {file} locally")
+
+			self.config.local_stage.delete()
+			if not self.config.local_stage.exists():
+				self.__logger.info(f"> Deleted {self.config.local_stage}")
+			else:
+				self.errors.append(f"> Failed to delete {self.config.local_stage}")
+				self.__logger.error(f"> Failed to delete {self.config.local_stage}")
+		except Exception as e:
+			self.errors.append(f"> Failed to stage {file} locally: {e}")
+			self.__logger.error(f"> Failed to stage {file} locally: {e}")
+			raise e

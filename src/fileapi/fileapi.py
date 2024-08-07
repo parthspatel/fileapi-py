@@ -47,12 +47,18 @@ class FileAPI:
 		if storage_options is None:
 			storage_options = lib_storage_options.default()
 
-		if fs is None and resolved_path is None:
-			temp_obj: FileAPI = self.apply(path=path, storage_options=storage_options)
-			self.path = temp_obj.path
-			self.fs = temp_obj.fs
-			self.resolved_path = temp_obj.resolved_path
-			self.storage_options = temp_obj.storage_options
+		if isinstance(path, FileAPI):
+			resolved_storage_options = {**path.storage_options, **storage_options}
+			self.path = path.path_string
+			self.fs = path.fs
+			self.resolved_path = path.resolved_path
+			self.storage_options = resolved_storage_options
+
+		elif fs is None and resolved_path is None:
+			self.path = path
+			resolved_storage_options = lib_storage_options.default() if storage_options is None else storage_options
+			self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=resolved_storage_options)
+			self.storage_options = resolved_storage_options
 
 		else:
 			self.path = path
@@ -479,17 +485,27 @@ class FileAPI:
 		"""
 		return self.path
 
-	def stage_temp_file(self) -> 'FileAPI':
+	def stage_temp_file(self, dest: Optional['FileAPI'] = None) -> 'FileAPI':
 		"""
 		Stage the file to a temporary file.
 		:return: A FileAPI object of the temporary file.
 		"""
-		with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-			local_path = tmp_file.name
+		logging.fatal("stage_temp_file is does not work, temp file is immediately cleaned up")
+
+		if dest:
+			with tempfile.NamedTemporaryFile(dir=dest.resolved_path, delete=False) as tmp_file:
+				local_path = tmp_file.name
+		else:
+			with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+				local_path = tmp_file.name
 		local_fs = fsspec.filesystem('file')
 		local_file_api = FileAPI(local_path, fs=local_fs, resolved_path=local_path, storage_options=self.storage_options)
 		self.copy_to(local_file_api)
-		return local_file_api
+
+		if local_file_api.exist():
+			return local_file_api
+		else:
+			raise Exception(f"Failed to stage file {self} to {local_file_api}")
 
 
 # @lru_cache(maxsize=None)
