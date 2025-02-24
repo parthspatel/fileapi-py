@@ -8,6 +8,7 @@ class FileSystemTester(object):
     """
     Tests the FileAPI class with different file systems
     """
+
     __logger = logging.getLogger(__name__)
     local_stage_lock = threading.Lock()
 
@@ -66,8 +67,13 @@ class FileSystemTester(object):
 
     def upload_files(self):
         self.__logger.info("> Uploading files")
-        files = [self.config.file_01, self.config.file_02, self.config.file_03, self.config.file_04,
-                 self.config.file_05]
+        files = [
+            self.config.file_01,
+            self.config.file_02,
+            self.config.file_03,
+            self.config.file_04,
+            self.config.file_05,
+        ]
         for file in files:
             file.write("> Hello, World!")
             if file.exists():
