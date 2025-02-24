@@ -1,38 +1,28 @@
-[tool.poetry]
-name = "fileapi_py"
+[project]
+name = "fileapi"
 version = "0.1.0"
-description = ""
-authors = ["Parth <parth.p@mendel.ai>"]
+description = "Add your description here"
 readme = "README.md"
-include = ["src/fileapi"]
+authors = [{ name = "Parth Patel", email = "parth.p@mendel.ai" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fsspec>=2025.2.0"
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-fsspec = "^2024.5.0"
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "fsspec>=2025.2.0",
+    "gcsfs>=2025.2.0",
+    "isort>=6.0.0",
+    "pytest>=8.3.4",
+    "pytest-xdist>=3.6.1",
+    "python-dotenv>=1.0.1",
+]
 
-[tool.poetry.group.dev.dependencies]
-isort = "^5.13.2"
-black = "^24.4.2"
-pytest = "^8.2.1"
-fsspec = { extras = ["full"], version = "^2024.5.0" }
-gcsfs = "^2024.5.0"
-pytest-xdist = "^3.6.1"
-python-dotenv = "^1.0.1"
-
-[[tool.poetry.source]]
-name = "mendel"
-url = "https://mendelhealth.jfrog.io/artifactory/api/pypi/pypi-local/simple"
-priority = "supplemental"
-
-
-[build-system]
-requires = ["poetry-core", "hatchling"]
-build-backend = ["poetry.core.masonry.api", "hatchling.build"]
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
+addopts = ["--import-mode=importlib"]
 pythonpath = "src"
 
 log_cli = true
@@ -40,3 +30,6 @@ log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -490,9 +490,10 @@ class FileAPI:
 		Stage the file to a temporary file.
 		:return: A FileAPI object of the temporary file.
 		"""
-		logging.fatal("stage_temp_file is does not work, temp file is immediately cleaned up")
+		# logging.fatal("stage_temp_file does not work, temp file is immediately cleaned up")
 
 		if dest:
+			os.makedirs(dest.resolved_path, exist_ok=True)
 			with tempfile.NamedTemporaryFile(dir=dest.resolved_path, delete=False) as tmp_file:
 				local_path = tmp_file.name
 		else:
