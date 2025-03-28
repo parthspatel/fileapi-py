@@ -14,12 +14,12 @@ class FileAPI:
     __logger__ = logging.getLogger(__name__)
 
     def __init__(
-        self,
-        path: str,
-        *,
-        fs: Optional[fsspec.AbstractFileSystem] = None,
-        resolved_path: Optional[LiteralString | str] = None,
-        storage_options: Optional[lib_storage_options.StorageOptions] = None,
+            self,
+            path: str,
+            *,
+            fs: Optional[fsspec.AbstractFileSystem] = None,
+            resolved_path: Optional[LiteralString | str] = None,
+            storage_options: Optional[lib_storage_options.StorageOptions] = None,
     ):
         """
         :param path: The path to the file or directory
@@ -198,7 +198,7 @@ class FileAPI:
         return list(self.list_generator())
 
     def list_children_generator(
-        self, maxdepth=None, storage_options: Optional[lib_storage_options.StorageOptions] = None
+            self, maxdepth=None, storage_options: Optional[lib_storage_options.StorageOptions] = None
     ) -> Generator["FileAPI", None, None]:
         """
         List the children of the file or directory.  If the file is a directory, it will list all the files in the directory.  If the file is a file, it will return the file itself.
@@ -227,7 +227,7 @@ class FileAPI:
             yield self
 
     def list_children(
-        self, maxdepth=None, storage_options: Optional[lib_storage_options.StorageOptions] = None
+            self, maxdepth=None, storage_options: Optional[lib_storage_options.StorageOptions] = None
     ) -> List["FileAPI"]:
         """
         List the children of the file or directory.  If the file is a directory, it will list all the files in the directory.  If the file is a file, it will return the file itself.
@@ -523,6 +523,22 @@ class FileAPI:
         """
         return self.path
 
+    @property
+    def file_name(self) -> str:
+        """
+        Get the file name from the path.
+        :return: The file name.
+        """
+        return os.path.basename(self.path_string)
+
+    @property
+    def directory_name(self) -> str:
+        """
+        Get the directory name from the path.
+        :return: The directory name.
+        """
+        return os.path.dirname(self.path_string)
+
     def stage_temp_file(self, dest: Optional["FileAPI"] = None) -> "FileAPI":
         """
         Stage the file to a temporary file.
@@ -551,7 +567,7 @@ class FileAPI:
 
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(
-    path: str, *, storage_options: Optional[lib_storage_options.StorageOptions] = None
+        path: str, *, storage_options: Optional[lib_storage_options.StorageOptions] = None
 ) -> Tuple[fsspec.AbstractFileSystem, LiteralString]:
     fs, _, paths = fsspec.get_fs_token_paths(path, storage_options=storage_options)
     return fs, paths[0]
