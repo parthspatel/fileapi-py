@@ -175,6 +175,28 @@ class FileAPI:
             self.__logger__.error(f"Failed to delete file {self} due to exception {e}")
             return False
 
+    def list_generator(self) -> Generator["FileAPI", None, None]:
+        """
+        List the files in the directory.
+        :return: A list of FileAPI objects.
+        """
+        path = self.fs._strip_protocol(self.resolved_path)
+        for full_path in self.fs.ls(path, detail=False):
+            self.fs.unstrip_protocol(full_path)
+            yield FileAPI(
+                full_path,
+                fs=self.fs,
+                resolved_path=full_path,
+                storage_options=self.storage_options,
+            )
+
+    def list(self) -> List["FileAPI"]:
+        """
+        List the files in the directory.
+        :return: A list of FileAPI objects.
+        """
+        return list(self.list_generator())
+
     def list_children_generator(
         self, maxdepth=None, storage_options: Optional[lib_storage_options.StorageOptions] = None
     ) -> Generator["FileAPI", None, None]:
