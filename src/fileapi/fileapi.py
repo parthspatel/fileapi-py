@@ -1,131 +1,92 @@
 import logging
 import tempfile
 from io import TextIOWrapper
-from typing import Union
+from typing import Union, Self
 
 import fsspec
 import os
 from contextlib import contextmanager
 
 import pydantic.dataclasses
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
 from typing_extensions import Iterator, Optional, List, LiteralString, Generator, Tuple, Callable, Any, Dict
 
 from . import storage_options as lib_storage_options
 
 
-@pydantic.dataclasses.dataclass(config={'arbitrary_types_allowed': True})
 class FileAPI:
-    # Allow `path` to be a string or another FileAPI for backwards compatibility.
-    path: Union[LiteralString, "FileAPI", str]
-    fs: Optional[fsspec.AbstractFileSystem] = None
-    resolved_path: Optional[LiteralString] = None
-    storage_options: Optional[lib_storage_options.StorageOptions] = None
-
     __logger__ = logging.getLogger(__name__)
 
-    def __post_init__(self):
-        # If storage_options is not provided, use the default.
-        if self.storage_options is None:
-            self.storage_options = lib_storage_options.default()
 
-        # If the path is already a FileAPI, copy its internals and merge storage_options.
-        if isinstance(self.path, FileAPI):
-            original = self.path
-            merged_storage_options = {**original.storage_options, **self.storage_options}
-            self.path = original.path_string
-            self.fs = original.fs
-            self.resolved_path = original.resolved_path
-            self.storage_options = merged_storage_options
+    def __init__(
+            self,
+            path: str,
+            *,
+            fs: Optional[fsspec.AbstractFileSystem] = None,
+            resolved_path: Optional[LiteralString | str] = None,
+            storage_options: Optional[lib_storage_options.StorageOptions] = None,
+    ):
+        """
+        :param path: The path to the file or directory
+        :param fs: The filesystem object.  If None, it will be inferred from the path.
+        :param resolved_path: The resolved path.  If None, it will be inferred from the path.
+        :param storage_options: The storage options.  If None, it will be inferred from the path and will supplement the default storage options.
 
-        # If neither fs nor resolved_path is provided, let _get_fs_and_path infer them.
-        elif self.fs is None and self.resolved_path is None:
-            self.fs, self.resolved_path = _get_fs_and_path(self.path, storage_options=self.storage_options)
+        :Example:
+        >>> from fileapi import FileAPI
+        >>> file = FileAPI("s3://bucket/path/to/file")
+        >>> file = FileAPI("s3://bucket/path/to/file", storage_options={"auto_mkdir": True})
+        >>> s3fs = fsspec.filesystem("s3")
+        >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs)
+        >>> file = FileAPI("s3://bucket/path/to/file", resolved_path="path/to/file")
+        >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, resolved_path="path/to/file")
+        >>> file = FileAPI("s3://bucket/path/to/file", storage_options={"auto_mkdir": True}, resolved_path="path/to/file")
+        >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, storage_options={"auto_mkdir": True}, resolved_path="path/to/file")
+        >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, storage_options={"auto_mkdir": True})
+        """
+
+        self.path: str
+        self.fs: fsspec.AbstractFileSystem
+        self.resolved_path: str
+        self.storage_options: lib_storage_options.StorageOptions
+
+        if storage_options is None:
+            storage_options = lib_storage_options.default()
+
+        if isinstance(path, FileAPI):
+            resolved_storage_options = {**path.storage_options, **storage_options}
+            self.path = path.path_string
+            self.fs = path.fs
+            self.resolved_path = path.resolved_path
+            self.storage_options = resolved_storage_options
+
+        elif fs is None and resolved_path is None:
+            self.path = path
+            resolved_storage_options = lib_storage_options.default() if storage_options is None else storage_options
+            self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=resolved_storage_options)
+            self.storage_options = resolved_storage_options
+
         else:
-            # If one of fs or resolved_path is provided, fill in the missing one.
-            if self.fs is None:
-                if self.resolved_path is None:
-                    self.fs, self.resolved_path = _get_fs_and_path(self.path, storage_options=self.storage_options)
-                else:
-                    self.fs, _ = _get_fs_and_path(self.path, storage_options=self.storage_options)
-            elif self.resolved_path is None:
-                self.resolved_path = _get_path(self.fs, self.path)
-            else:
-                if "auto_mkdir" in self.storage_options:
-                    self.fs.auto_mkdir = self.storage_options["auto_mkdir"]
-                if "cache_type" in self.storage_options:
-                    self.fs.cache_type = self.storage_options["cache_type"]
+            self.path = path
+            self.storage_options = storage_options
 
-    # __logger__ = logging.getLogger(__name__)
-    #
-    #
-    # def __init__(
-    #         self,
-    #         path: str,
-    #         *,
-    #         fs: Optional[fsspec.AbstractFileSystem] = None,
-    #         resolved_path: Optional[LiteralString | str] = None,
-    #         storage_options: Optional[lib_storage_options.StorageOptions] = None,
-    # ):
-    #     """
-    #     :param path: The path to the file or directory
-    #     :param fs: The filesystem object.  If None, it will be inferred from the path.
-    #     :param resolved_path: The resolved path.  If None, it will be inferred from the path.
-    #     :param storage_options: The storage options.  If None, it will be inferred from the path and will supplement the default storage options.
-    #
-    #     :Example:
-    #     >>> from fileapi import FileAPI
-    #     >>> file = FileAPI("s3://bucket/path/to/file")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", storage_options={"auto_mkdir": True})
-    #     >>> s3fs = fsspec.filesystem("s3")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs)
-    #     >>> file = FileAPI("s3://bucket/path/to/file", resolved_path="path/to/file")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, resolved_path="path/to/file")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", storage_options={"auto_mkdir": True}, resolved_path="path/to/file")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, storage_options={"auto_mkdir": True}, resolved_path="path/to/file")
-    #     >>> file = FileAPI("s3://bucket/path/to/file", fs=s3fs, storage_options={"auto_mkdir": True})
-    #     """
-    #
-    #     self.path: str
-    #     self.fs: fsspec.AbstractFileSystem
-    #     self.resolved_path: str
-    #     self.storage_options: lib_storage_options.StorageOptions
-    #
-    #     if storage_options is None:
-    #         storage_options = lib_storage_options.default()
-    #
-    #     if isinstance(path, FileAPI):
-    #         resolved_storage_options = {**path.storage_options, **storage_options}
-    #         self.path = path.path_string
-    #         self.fs = path.fs
-    #         self.resolved_path = path.resolved_path
-    #         self.storage_options = resolved_storage_options
-    #
-    #     elif fs is None and resolved_path is None:
-    #         self.path = path
-    #         resolved_storage_options = lib_storage_options.default() if storage_options is None else storage_options
-    #         self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=resolved_storage_options)
-    #         self.storage_options = resolved_storage_options
-    #
-    #     else:
-    #         self.path = path
-    #         self.storage_options = storage_options
-    #
-    #         if fs is None:
-    #             if resolved_path is None:
-    #                 self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=storage_options)
-    #             else:
-    #                 self.resolved_path = resolved_path
-    #                 self.fs, _ = _get_fs_and_path(path, storage_options=storage_options)
-    #         elif resolved_path is None:
-    #             self.fs = fs
-    #             self.resolved_path = _get_path(fs, path)
-    #         else:
-    #             self.fs = fs
-    #             self.resolved_path = resolved_path
-    #             if "auto_mkdir" in self.storage_options:
-    #                 self.fs.auto_mkdir = storage_options["auto_mkdir"]
-    #             if "cache_type" in self.storage_options:
-    #                 self.fs.cache_type = storage_options["cache_type"]
+            if fs is None:
+                if resolved_path is None:
+                    self.fs, self.resolved_path = _get_fs_and_path(path, storage_options=storage_options)
+                else:
+                    self.resolved_path = resolved_path
+                    self.fs, _ = _get_fs_and_path(path, storage_options=storage_options)
+            elif resolved_path is None:
+                self.fs = fs
+                self.resolved_path = _get_path(fs, path)
+            else:
+                self.fs = fs
+                self.resolved_path = resolved_path
+                if "auto_mkdir" in self.storage_options:
+                    self.fs.auto_mkdir = storage_options["auto_mkdir"]
+                if "cache_type" in self.storage_options:
+                    self.fs.cache_type = storage_options["cache_type"]
 
     @classmethod
     def apply(cls, path: LiteralString | "FileAPI" | str, storage_options: Optional[Dict] = None) -> "FileAPI":
@@ -609,6 +570,24 @@ class FileAPI:
         else:
             raise Exception(f"Failed to stage file {self} to {local_file_api}")
 
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        return core_schema.union_schema(
+            [
+                core_schema.no_info_after_validator_function(
+                    cls._validate,
+                    core_schema.str_schema()
+                ),
+                core_schema.is_instance_schema(cls),
+            ]
+        )
+
+    @classmethod
+    def _validate(cls, value: str) -> Self:
+        try:
+            return cls(value)
+        except Exception as e:
+            raise ValueError(f"Invalid JSONPath: {value}. Error: {e}")
 
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(
