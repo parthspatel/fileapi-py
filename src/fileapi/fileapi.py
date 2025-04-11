@@ -486,6 +486,7 @@ class FileAPI:
                 dest_child = dest / rel_name
                 dest_child.mk_dirs()
                 print(child)
+                print(rel_name)
                 print(dest_child)
                 child.copy_to(dest_child)
         else:
