@@ -18,7 +18,6 @@ from . import storage_options as lib_storage_options
 class FileAPI:
     __logger__ = logging.getLogger(__name__)
 
-
     def __init__(
             self,
             path: str,
@@ -480,9 +479,17 @@ class FileAPI:
         :param dest: The destination file.
         :return: True if the file was copied, False otherwise.
         """
-        with self.create_input_stream() as src_stream:
-            with dest.create_output_stream() as dest_stream:
-                dest_stream.write(src_stream.read())
+        if self.is_directory():
+            listing = self.list_children()
+            for child in listing:
+                rel_name = self.relativized(child)
+                dest_child = dest / rel_name
+                dest_child.mk_dirs()
+                child.copy_to(dest_child)
+        else:
+            with self.create_input_stream() as src_stream:
+                with dest.create_output_stream() as dest_stream:
+                    dest_stream.write(src_stream.read())
         return True
 
     def move_to(self, dest: "FileAPI") -> bool:
@@ -588,6 +595,7 @@ class FileAPI:
             return cls(value)
         except Exception as e:
             raise ValueError(f"Invalid FileAPI: {value}. Error: {e}")
+
 
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(
