@@ -485,9 +485,9 @@ class FileAPI:
                 rel_name = self.relativized(child)
                 dest_child = dest / rel_name
                 dest_child.mk_dirs()
-                print(child)
-                print(rel_name)
-                print(dest_child)
+                print("c", child)
+                print("r", rel_name)
+                print("d", dest_child)
                 child.copy_to(dest_child)
         else:
             with self.create_input_stream() as src_stream:
