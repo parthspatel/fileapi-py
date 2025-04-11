@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [{ name = "Parth Patel", email = "parth.p@mendel.ai" }]
 requires-python = ">=3.10"
 dependencies = [
+    "build>=1.2.2.post1",
     "fsspec>=2025.2.0",
     "pydantic>=2.11.1",
 ]
