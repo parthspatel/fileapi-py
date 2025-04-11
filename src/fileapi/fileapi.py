@@ -587,7 +587,7 @@ class FileAPI:
         try:
             return cls(value)
         except Exception as e:
-            raise ValueError(f"Invalid JSONPath: {value}. Error: {e}")
+            raise ValueError(f"Invalid FileAPI: {value}. Error: {e}")
 
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(
