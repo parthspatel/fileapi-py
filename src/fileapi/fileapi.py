@@ -482,7 +482,7 @@ class FileAPI:
         if self.is_directory():
             listing = self.list_children()
             for child in listing:
-                rel_name = self.relativized(child)
+                rel_name = child.path_string.removeprefix(self.path_string)
                 dest_child = dest / rel_name
                 dest_child.mk_dirs()
                 print("c", child)
