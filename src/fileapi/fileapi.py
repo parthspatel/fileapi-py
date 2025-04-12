@@ -1,7 +1,9 @@
+import doctest
 import logging
 import tempfile
 from io import TextIOWrapper
-from typing import Union, Self
+from typing import Union
+from typing_extensions import Self
 
 import fsspec
 import os
@@ -473,23 +475,40 @@ class FileAPI:
         """
         return os.path.relpath(self.resolved_path, start=base.resolved_path)
 
-    def copy_to(self, dest: "FileAPI") -> bool:
+    def copy_to(self, dest: Union["FileAPI", str]) -> bool:
         """
         Copy the file to another file.
         :param dest: The destination file.
         :return: True if the file was copied, False otherwise.
         """
-        dest = FileAPI.apply(dest)
+        errs = []
+        dest = FileAPI.apply(dest, self.storage_options) if not isinstance(dest, FileAPI) else dest
         if self.is_directory():
             listing = self.list_children()
             for child in listing:
-                rel_name = child.path_string.removeprefix(self.path_string)
+                rel_name = child.path_string[child.path_string.index(self.path_string) + len(self.path_string):]
                 dest_child = dest / rel_name
-                child.copy_to(dest_child)
+
+                try:
+                    with child.create_input_stream() as src_stream:
+                        with dest_child.create_output_stream() as dest_stream:
+                            dest_stream.write(src_stream.read())
+                except Exception as e:
+                    errs.append(e)
         else:
-            with self.create_input_stream() as src_stream:
-                with dest.create_output_stream() as dest_stream:
-                    dest_stream.write(src_stream.read())
+            try:
+                with self.create_input_stream() as src_stream:
+                    with dest.create_output_stream() as dest_stream:
+                        dest_stream.write(src_stream.read())
+            except Exception as e:
+                errs.append(e)
+
+        if len(errs) > 0:
+            for e in errs:
+                self.__logger__.error(f"Failed to copy file {child} to {dest_child} due to exception {e}")
+            raise RuntimeError(
+                f"Failed to copy file {child} to {dest_child} due to {len(errs)} exception{'s' if len(errs) > 1 else ''}")
+
         return True
 
     def move_to(self, dest: "FileAPI") -> bool:
@@ -611,3 +630,9 @@ def _get_path(fs: fsspec.AbstractFileSystem, path: str) -> LiteralString:
 
 def _make_hashable(d: Optional[Dict]) -> Tuple:
     return tuple(sorted(d.items())) if d else tuple()
+
+
+if __name__ == "__main__":
+    file = "gs://ontology-releases/ontology-releases/co5v23.3"
+    fileAPI = FileAPI.apply(file)
+    local = fileAPI.copy_to("/Users/parth/Documents/projects/ai/projects/agentic-resolve-demo/orchestrator/tmp/ont")

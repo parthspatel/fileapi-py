@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.10 (fileapi-py)" />
+    <option name="sdkName" value="uv (fileapi-py)" />
   </component>
   <component name="MaterialThemeProjectNewConfig">
     <option name="metadata">
@@ -12,5 +12,5 @@
       </MTProjectMetadataState>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (fileapi-py)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="uv (fileapi-py)" project-jdk-type="Python SDK" />
 </project>
