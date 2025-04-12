@@ -478,6 +478,7 @@ class FileAPI:
     def copy_to(self, dest: Union["FileAPI", str]) -> bool:
         """
         Copy the file to another file.
+        Will throw a RuntimeError if the copy fails to copy any number of files, the copy operation will partially complete.
         :param dest: The destination file.
         :return: True if the file was copied, False otherwise.
         """
@@ -487,7 +488,11 @@ class FileAPI:
             listing = self.list_children()
             for child in listing:
                 rel_name = child.path_string[child.path_string.index(self.path_string) + len(self.path_string):]
+                rel_name = rel_name.lstrip("/")
                 dest_child = dest / rel_name
+
+                self.__logger__.debug(
+                    f"Copying file from {{src = {child}, rel = {rel_name}, dest = {dest}, final = {dest_child}}}", )
 
                 try:
                     with child.create_input_stream() as src_stream:

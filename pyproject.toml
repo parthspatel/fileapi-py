@@ -1,6 +1,6 @@
 [project]
 name = "fileapi"
-version = "0.1.11"
+version = "0.2.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "Parth Patel", email = "parthspatel.nj@gmail.com" }]
