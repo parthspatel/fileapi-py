@@ -7,7 +7,7 @@ authors = [{ name = "Parth Patel", email = "parthspatel.nj@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = [
     "fsspec>=2025.2.0",
-    "pydantic>=2.0.1",
+    "pydantic>=2.11.1",
 ]
 
 [dependency-groups]
