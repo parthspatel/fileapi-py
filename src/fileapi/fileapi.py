@@ -479,6 +479,7 @@ class FileAPI:
         :param dest: The destination file.
         :return: True if the file was copied, False otherwise.
         """
+        dest = FileAPI.apply(dest)
         if self.is_directory():
             listing = self.list_children()
             for child in listing:
