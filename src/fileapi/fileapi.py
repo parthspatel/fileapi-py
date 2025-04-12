@@ -3,7 +3,6 @@ import logging
 import tempfile
 from io import TextIOWrapper
 from typing import Union
-from typing_extensions import Self
 
 import fsspec
 import os
@@ -12,7 +11,7 @@ from contextlib import contextmanager
 import pydantic.dataclasses
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
-from typing_extensions import Iterator, Optional, List, LiteralString, Generator, Tuple, Callable, Any, Dict
+from typing_extensions import Iterator, Optional, List, Generator, Tuple, Callable, Any, Dict, Self
 
 from . import storage_options as lib_storage_options
 
@@ -25,7 +24,7 @@ class FileAPI:
             path: str,
             *,
             fs: Optional[fsspec.AbstractFileSystem] = None,
-            resolved_path: Optional[LiteralString | str] = None,
+            resolved_path: Optional[str] = None,
             storage_options: Optional[lib_storage_options.StorageOptions] = None,
     ):
         """
@@ -90,7 +89,7 @@ class FileAPI:
                     self.fs.cache_type = storage_options["cache_type"]
 
     @classmethod
-    def apply(cls, path: LiteralString | "FileAPI" | str, storage_options: Optional[Dict] = None) -> "FileAPI":
+    def apply(cls, path: Union[str, "FileAPI"], storage_options: Optional[Dict] = None) -> "FileAPI":
         """
         Create a FileAPI object from a path or another FileAPI object.
         A more optimized version of the constructor.
@@ -152,7 +151,7 @@ class FileAPI:
         """
         return not os.path.isabs(self.path)
 
-    def __truediv__(self, child_name: LiteralString) -> "FileAPI":
+    def __truediv__(self, child_name: str) -> "FileAPI":
         """
         Concatenates the path with a child name.
         :param child_name:  The child name to concatenate.
@@ -162,7 +161,7 @@ class FileAPI:
             os.path.join(self.path, child_name), fs=self.fs, resolved_path=None, storage_options=self.storage_options
         )
 
-    def __floordiv__(self, child_name: LiteralString) -> "FileAPI":
+    def __floordiv__(self, child_name: str) -> "FileAPI":
         """
         Concatenates the path with a child name.
         :param child_name: The child name to concatenate.
@@ -267,7 +266,7 @@ class FileAPI:
         return self.fs.checksum(self.resolved_path)
 
     @contextmanager
-    def create_output_stream(self, mode="wb") -> TextIOWrapper | fsspec.spec.AbstractBufferedFile:
+    def create_output_stream(self, mode="wb") -> Union[TextIOWrapper, fsspec.spec.AbstractBufferedFile]:
         """
         Create an output stream for writing to the file.  This is a manged context, so the file will be closed automatically.
         :param mode: The mode to open the file in.
@@ -283,7 +282,7 @@ class FileAPI:
             yield f
 
     @contextmanager
-    def create_input_stream(self, mode="rb") -> TextIOWrapper | fsspec.spec.AbstractBufferedFile:
+    def create_input_stream(self, mode="rb") -> Union[TextIOWrapper, fsspec.spec.AbstractBufferedFile]:
         """
         Create an input stream for reading from the file.  This is a manged context, so the file will be closed automatically.
         :param mode: The mode to open the file in.
@@ -362,7 +361,7 @@ class FileAPI:
         """
         self.write(str(t))
 
-    def with_output(self, f: Callable[[TextIOWrapper | fsspec.spec.AbstractBufferedFile], Any]):
+    def with_output(self, f: Callable[[Union[TextIOWrapper, fsspec.spec.AbstractBufferedFile]], Any]):
         """
         Open an output stream and pass it to a function.
         :param f: The function to pass the stream to.
@@ -378,7 +377,7 @@ class FileAPI:
         with self.create_output_stream() as stream:
             return f(stream)
 
-    def with_input(self, f: Callable[[TextIOWrapper | fsspec.spec.AbstractBufferedFile], Any]):
+    def with_input(self, f: Callable[[Union[TextIOWrapper, fsspec.spec.AbstractBufferedFile]], Any]):
         """
         Open an input stream and pass it to a function.
         :param f: The function to pass the stream to.
@@ -460,7 +459,7 @@ class FileAPI:
                     dest_stream.write(src_stream.read())
         return True
 
-    def relativized(self, base: "FileAPI") -> LiteralString | bytes | str:
+    def relativized(self, base: "FileAPI") -> str:
         """
         Get the relative path from the base path.
         :param base: The base path.
@@ -473,7 +472,9 @@ class FileAPI:
         >>> print(file.relativized(base))
         "to/file"
         """
-        return os.path.relpath(self.resolved_path, start=base.resolved_path)
+        rel_name = self.path_string[self.path_string.index(base.path_string) + len(base.path_string):]
+        rel_name = rel_name.lstrip("/")
+        return rel_name
 
     def copy_to(self, dest: Union["FileAPI", str]) -> bool:
         """
@@ -624,12 +625,12 @@ class FileAPI:
 # @lru_cache(maxsize=None)
 def _get_fs_and_path(
         path: str, *, storage_options: Optional[lib_storage_options.StorageOptions] = None
-) -> Tuple[fsspec.AbstractFileSystem, LiteralString]:
+) -> Tuple[fsspec.AbstractFileSystem, str]:
     fs, _, paths = fsspec.get_fs_token_paths(path, storage_options=storage_options)
     return fs, paths[0]
 
 
-def _get_path(fs: fsspec.AbstractFileSystem, path: str) -> LiteralString:
+def _get_path(fs: fsspec.AbstractFileSystem, path: str) -> str:
     return fs._strip_protocol(path)
 
 
