@@ -485,9 +485,6 @@ class FileAPI:
             for child in listing:
                 rel_name = child.path_string.removeprefix(self.path_string)
                 dest_child = dest / rel_name
-                print("c", child)
-                print("r", rel_name)
-                print("d", dest_child)
                 child.copy_to(dest_child)
         else:
             with self.create_input_stream() as src_stream:
